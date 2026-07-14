@@ -1,2 +1,1 @@
-# QueryGenie
-LLM project
+# Project Started on GenAI - Work in Progress
