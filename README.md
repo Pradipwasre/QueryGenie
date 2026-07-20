@@ -26,7 +26,7 @@ Yeh exact wahi pattern hai jo aap kisi bhi production GenAI product mein dekhoge
 
 ---
 
-## Folder Structure Recap (Blackboard pe likhne ke liye)
+## Folder Structure Recap 
 
 ```
 QueryGenie/
