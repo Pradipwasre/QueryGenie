@@ -1,183 +1,675 @@
-# Virtual Environment Setup Guide — QueryGenie Project
+# MYSQL Installation 
 
-This guide explains what a virtual environment is, why we need it, and how to set it up on both Mac and Windows.
+Installation and Setup of MySQL and MySQL Workbench
+MySQL is a widely used relational database management system, and MySQL Workbench is a graphical tool for working with MySQL databases. Here's a detailed guide on how to install and set up MySQL and MySQL Workbench on macOS, Linux, and Windows.
 
----
+## On macOS
+### Installing MySQL
+Download MySQL:
 
-## What Is a Virtual Environment? (Explained in the Simplest Way)
+Visit the MySQL Community Downloads page. https://dev.mysql.com/downloads/mysql/
+Select the macOS version (DMG Archive) and download it.
+Install MySQL:
 
-Imagine your computer has only **one big kitchen**. Every project you ever build has to cook its food in that same kitchen, using the same pots, pans, and ingredients.
+Open the downloaded DMG file and follow the on-screen instructions.
+During the installation, you'll be prompted to set up a root password. Make sure to remember this password.
 
-Now imagine:
-- Project A needs sugar that is exactly 2 years old
-- Project B needs sugar that is exactly 5 years old
 
-If there is only one kitchen with only one jar of sugar, both projects cannot get what they need at the same time. One of them will break.
+### Download MySQL Workbench:
 
-This is exactly what happens with Python projects. Every Python project needs certain **packages** (like `langchain`, `streamlit`, `openai`) and each package has a **version number**. One project might need `langchain==0.2.0`, and a completely different project on the same laptop might need `langchain==0.3.5`. If you install everything directly onto your computer (the "one big kitchen"), the second install will overwrite the first, and your first project will stop working.
+Visit the MySQL Workbench Downloads page. https://dev.mysql.com/downloads/workbench/
+Select the macOS version and download it.
+Install MySQL Workbench:
 
-A **virtual environment** solves this by giving **each project its own separate, private kitchen**. Nothing installed inside Project A's environment can affect Project B. They live in their own isolated bubble.
+Open the downloaded DMG file and drag MySQL Workbench to the Applications folder.
 
----
 
-## Will the Project Work Without a Virtual Environment?
+## On Linux (Ubuntu)
 
-Short answer: **it might work today, but it is risky, and for this course it is compulsory.**
+### Installing MySQL
 
-Here is why:
+Update Package Index:
+sudo apt update
 
-- Without an environment, all packages get installed directly onto your laptop's main Python. This is called the "global" or "system" Python.
-- If you (or any other software on your laptop) install a different version of any package later, this project can suddenly stop working, and you will not know why.
-- If two of your projects need different versions of the same package, you cannot have both working at the same time without a virtual environment.
-- Every student's laptop already has different things installed on it. Without an environment, your teacher cannot guarantee that the same steps will produce the same result on every laptop in the batch.
+Install MySQL:
+sudo apt install mysql-server
 
-So yes, technically Python can run without an environment. But for a real project, especially one with many specific package versions (like this one), skipping the environment is like skipping a seatbelt — it might be fine for a short drive, but it is not how it is done properly, and it is not how it is done in real companies.
+Secure MySQL Installation:
+sudo mysql_secure_installation
 
----
+Follow the prompts to set up the root password and secure your MySQL installation.
+Start MySQL Service:
+sudo systemctl start mysql
 
-## Do I Need to Activate the Environment Every Single Time?
+Optionally enable it to start on boot:
+sudo systemctl enable mysql
 
-**Yes.** Every time you close and reopen your terminal (Command Prompt, PowerShell, or Mac Terminal), the environment gets deactivated automatically. This is normal behavior, not a mistake.
 
-So the rule is simple:
+Installing MySQL Workbench
 
-> Every time you open a new terminal window to work on this project, activate the environment first, before running any Python or pip command.
 
-You do **not** need to create the environment again and again — you only create it once. But you **do** need to activate it every time you start a new terminal session.
+### Download MySQL Workbench:
 
-How do you know it is active? Look at the start of your terminal line. If you see `(myenv)` written before your folder path, the environment is active. If you don't see it, it is not active, and you must activate it again before continuing.
+Visit the MySQL Workbench Downloads page. https://dev.mysql.com/downloads/workbench/
+Select the Linux version and download the DEB file.
 
----
+Install MySQL Workbench:
+sudo dpkg -i mysql-workbench-community-*.deb
+sudo apt-get -f install  # To fix any dependency issues
 
-# PART 1 — MAC SETUP
 
-## Step 1: Open Terminal
+## On Windows
 
-Press `Command + Space`, type `Terminal`, and press Enter.
+### Installing MySQL
 
-## Step 2: Go to Your Project Folder
+Download MySQL Installer:
 
-```bash
-cd ~/Desktop/QueryGenie
-```
+Visit the MySQL Community Downloads page. https://dev.mysql.com/downloads/mysql/
+Download the MySQL Installer for Windows.
 
-If your folder is somewhere else, replace the path above with the correct one.
+Install MySQL:
+Run the downloaded installer and follow the setup instructions.
+During the installation, select the "Developer Default" setup type for a complete MySQL installation.
+Set up a root password when prompted.
 
-## Step 3: Create the Virtual Environment (Only Once)
+Start MySQL Server:
 
-```bash
-python3.10 -m venv myenv
-```
+The MySQL server should start automatically after installation. If not, you can start it via the MySQL Workbench or from the command line.
 
-This creates a new, empty, isolated environment named `myenv` inside your project folder. You only run this command one time for the whole project — not every day.
 
-If `python3.10` is not recognized, check your Python 3.10 installation first using:
+### Installing MySQL Workbench
+Download MySQL Workbench:
 
-```bash
-python3.10 --version
-```
+The MySQL Workbench installer can be installed with the MySQL Installer. If not Visit the MySQL Workbench Downloads page. https://dev.mysql.com/downloads/workbench/
+and download microsoft version.
 
-## Step 4: Activate the Environment (Every Time You Work on This Project)
+Open MySQL Workbench:
 
-```bash
-source myenv/bin/activate
-```
+Once installed, you can open MySQL Workbench from the Start menu.
 
-After running this, you should see `(myenv)` appear at the beginning of your terminal line. This confirms the environment is active and ready.
 
-## Step 5: Upgrade pip (Recommended, Only Needed Occasionally)
+## Connecting to MySQL Server using MySQL Workbench
 
-```bash
-pip install --upgrade pip
-```
+Launch MySQL Workbench:
 
-## Step 6: Install All Project Packages (Only Once, Unless requirements.txt Changes)
+Open MySQL Workbench from your Applications (macOS), start menu (Windows), or application menu (Linux).
+Create a New Connection:
 
-```bash
-pip install -r requirements.txt
-```
+Click on the "MySQL Connections" tab and then click the "+" button to create a new connection.
+Enter the connection name, hostname (usually localhost), port (default is 3306), and the root username.
+Click "Test Connection" and enter the root password you set during installation.
+If the connection is successful, click "OK" to save it.
+Manage Databases:
 
-## Step 7: When You Are Done Working, Deactivate (Optional but Good Practice)
+Once connected, you can manage your databases, run queries, and perform other database tasks using MySQL Workbench's graphical interface.
 
-```bash
-deactivate
-```
 
-This exits the environment and returns you to your normal system terminal. You do not have to do this — closing the terminal window also deactivates it automatically. But if you want to keep working in the same terminal window on something else, run this command first.
+References:
 
----
+- Install mysql -> For mac: brew install mysql or follow https://flaviocopes.com/mysql-how-to-install/
+- Run: mysql.server start
+- Install mysql-workbench -> https://www.mysql.com/products/workbench/
+- Install mysql-connector -> pip install mysql-connector
 
-# PART 2 — WINDOWS SETUP
 
-## Step 1: Open Command Prompt or PowerShell
+# System Requirements for Open AI API Execution
 
-Search for `cmd` or `PowerShell` in the Start Menu and open it.
+Using the OpenAI API involves several considerations related to the system requirements and setup to ensure smooth and efficient operation. Below are the key aspects to consider:
 
-## Step 2: Go to Your Project Folder
+### 1. Operating System
+The OpenAI API can be accessed from any operating system that supports HTTP requests. Commonly used operating systems include:
 
-```powershell
-cd C:\Users\YourName\Desktop\QueryGenie
-```
+Windows: Windows 10 or later is recommended.
+macOS: macOS 10.15 (Catalina) or later.
+Linux: Modern distributions such as Ubuntu 18.04 or later
 
-Replace `YourName` and the path with your actual folder location.
+### 2. Hardware Requirements
+The hardware requirements are relatively minimal, as the actual processing happens on OpenAI's servers. However, for development and integration purposes, consider the following:
 
-## Step 3: Create the Virtual Environment (Only Once)
+Processor: A modern multi-core processor 
+Memory: At least 8GB of RAM is recommended, if you are handling large datasets or multiple applications simultaneously consider more.
+Storage: Sufficient storage space for your development environment and any necessary dependencies. SSD storage is recommended for faster read/write operations.
 
-```powershell
-py -3.10 -m venv myenv
-```
+### 3. Internet Connection
+A stable and reasonably fast internet connection is essential, as interactions with the OpenAI API require sending and receiving data over the internet.
 
-This creates the isolated environment named `myenv` inside your project folder. You only need to run this command one single time for the whole project.
+Speed: A minimum of 2-4 Mbps is recommended to handle API requests and responses efficiently.
+Stability: A stable connection with low latency is crucial to avoid timeouts and ensure quick responses from the API.
 
-## Step 4: Activate the Environment (Every Time You Work on This Project)
+### 4. API Key and Authentication
+API Key: To use the OpenAI API, you need an API key, which you can obtain by signing up for an account on the OpenAI platform and creating an API key.
 
-```powershell
+
+
+
+
+
+
+
+# Code Execution Instructions
+
+## Python version 3.10
+
+To create a virtual environment and install requirements in Python 3.10 on different operating systems, follow the instructions below:
+
+### For Windows:
+
+Open the Command Prompt by pressing Win + R, typing "cmd", and pressing Enter.
+
+Change the directory to the desired location for your project:
+
+
+`cd C:\path\to\project`
+
+Create a new virtual environment using the venv module:
+
+
+`python -m venv myenv`
+
+Activate the virtual environment:
+
+`myenv\Scripts\activate`
+
+
+Install the project requirements using pip:
+
+`pip install -r requirements.txt`
+
+### For Linux/Mac:
+Open a terminal.
+
+Change the directory to the desired location for your project:
+
+`cd /path/to/project`
+
+Create a new virtual environment using the venv module:
+
+`python3.10 -m venv myenv`
+
+
+Activate the virtual environment:
+
+`source myenv/bin/activate`
+
+Install the project requirements using pip:
+
+`pip install -r requirements.txt`
+
+These instructions assume you have Python 3.10 installed and added to your system's PATH variable.
+
+## Execution Instructions if Multiple Python Versions Installed
+
+If you have multiple Python versions installed on your system, you can use the Python Launcher to create a virtual environment with Python 3.10. Specify the version using the -p or --python flag. Follow the instructions below:
+
+For Windows:
+Open the Command Prompt by pressing Win + R, typing "cmd", and pressing Enter.
+
+Change the directory to the desired location for your project:
+
+`cd C:\path\to\project`
+
+Create a new virtual environment using the Python Launcher:
+
+`py -3.10 -m venv myenv`
+
+Note: Replace myenv with your desired virtual environment name.
+
+Activate the virtual environment:
+
+`
 myenv\Scripts\activate
-```
+`
 
-After running this, you should see `(myenv)` appear at the beginning of your terminal line. This confirms it is active.
+Install the project requirements using pip:
 
-If you get a security error saying "running scripts is disabled on this system," run this command once, then try activating again:
+`pip install -r requirements.txt`
 
-```powershell
-Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
-```
 
-## Step 5: Upgrade pip (Recommended, Only Needed Occasionally)
+### For Linux/Mac:
+Open a terminal.
 
-```powershell
-python -m pip install --upgrade pip
-```
+Change the directory to the desired location for your project:
 
-## Step 6: Install All Project Packages (Only Once, Unless requirements.txt Changes)
+`cd /path/to/project
+`
+Create a new virtual environment using the Python Launcher:
 
-```powershell
-pip install -r requirements.txt
-```
 
-## Step 7: When You Are Done Working, Deactivate (Optional but Good Practice)
+`python3.10 -m venv myenv`
 
-```powershell
-deactivate
-```
 
-This exits the environment. Closing the terminal window also does this automatically.
+Note: Replace myenv with your desired virtual environment name.
 
----
+Activate the virtual environment:
 
-## Quick Summary Table
+`source myenv/bin/activate`
 
-| Action | How Often |
-|---|---|
-| Create the environment (`venv` command) | Only once, ever, per project |
-| Activate the environment | Every single time you open a new terminal to work on this project |
-| Install packages (`pip install -r requirements.txt`) | Only once, unless the package list changes |
-| Deactivate | Optional, only if you want to leave the environment without closing the terminal |
+Install the project requirements using pip:
 
----
+`pip install -r requirements.txt`
 
-## One-Line Rule to Remember
 
-**Before touching any Python file, running any script, or installing any package for this project — always check that `(myenv)` is showing in your terminal first.**
+By specifying the version using py -3.10 or python3.10, you can ensure that the virtual environment is created using Python 3.10 specifically, even if you have other Python versions installed.
 
-If it is not showing, activate it before doing anything else.
+
+
+## Run streamlit application
+
+`streamlit run app.py`
+
+
+
+
+==============================================================
+
+
+Complete Project view: 
+
+QueryGeine is like hiring a smart Assitant, who? 
+- Understands normal english Question from shop owner.
+- Knows how to search the register himself (write SQL query behind scenes)
+- Reads the answer from the register 
+- If owner ask for the picture / graph, it assist to provide the graph.
+
+# The Three Files:
+**chat_app.py** : The face of the project. This is that chat screen the user sees and types into (build the stremit)
+**agent.py** : The brain of the project. This creates two AI worker. One who talk to the database, one who write the python code for charts.
+**helper.py** : The support staff. Small helper functions that clean and display the AI's reply nicely, and pull out the image or code blocks from the reply text.
+
+
+3 - layer pattern: 
+1. Frontend / UI layer  : (chat_app.py)
+2. Logic/brain layer    : (agent.py)
+3. Utility/helper layer : (helper.py)
+
+---------------------------------
+
+# what happens the moment the app starts (before user types anything): 
+
+chat_app.py : 
+- load_dot.env 
+- st.set_page_config(page_title="QueryGenie Analytics")
+- session_stats = 
+- SQL agent / python agent
+
+
+==================================
+
+# agent.py
+
+load_dotenv("/Users/pradipwasre/Desktop/QueryGenie/.env")
+GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
+os.environ['GROQ_API_KEY'] = GROQ_API_KEY
+
+GROQ_BASE_URL = "https://api.groq.com/openai/v1"
+DEFAULT_MODEL_NAME = "openai/gpt-oss-120b"
+
+CUSTOM_SUFFIX = """Begin!
+
+Relevant pieces of previous conversation:
+{chat_history}
+(Note: Only reference this information if it is relevant to the current query.)
+
+Question: {input}
+Thought Process: It is imperative that I do not fabricate information not present in any table or engage in hallucination; maintaining trustworthiness is crucial.
+In SQL queries involving string or TEXT comparisons, I must use the `LOWER()` function for case-insensitive comparisons and the `LIKE` operator for fuzzy matching. 
+Queries for return percentage is defined as total number of returns divided by total number of orders. You can join orders table with users table to know more about each user.
+Make sure that query is related to the SQL database and tables you are working with.
+If the result is empty, the Answer should be "No results found". DO NOT hallucinate an answer if there is no result.
+
+
+""
+never hallucinate answers : if no SQL result, repond "No results found"
+Final output must be only the SQL qury result, nothing extra
+
+This acts like a saftey net to keep the agent trustworthy and SQL- focused
+"" 
+
+
+My final response should STRICTLY be the output of SQL query.
+
+{agent_scratchpad}
+"""
+
+langchain_chat_kwargs = {
+    "temperature": 0,
+    "max_tokens": 4000,
+    "verbose": True,
+}
+chat_openai_model_kwargs = {
+    "top_p": 1.0,
+    "frequency_penalty": 0.0,
+    "presence_penalty": -1,
+}
+----------
+**In short**:
+- Loads your Groq API key securly.
+- Sets up the Groq API endpoint the default model.
+- Defines strict SQL query reles via a customer suffix.
+- Configures the LLM to be deterministic, verbose and trustworthy.
+
+----------
+
+# Code if you've set up passowrd in mysql
+# import urllib.parse
+
+# password = urllib.parse.quote_plus("you-password")  # Replace "your#password" with your actual password
+# db = SQLDatabase.from_uri(f"mysql://root:{password}@localhost:3306/ecommerce")
+
+db = SQLDatabase.from_uri(f"mysql://root:{'password'}@localhost:3306/ecommerce")
+
+# db = SQLDatabase.from_uri("mysql://localhost:3306/ecommerce?user=root")
+
+
+def get_chat_openai(model_name):
+    """
+    Returns an instance of the ChatOpenAI class initialized with the specified model name.
+
+    Args:
+        model_name (str): The name of the model to use.
+
+    Returns:
+        ChatOpenAI: An instance of the ChatOpenAI class.
+
+    """
+    llm = ChatOpenAI(
+        model_name=model_name,
+        api_key=GROQ_API_KEY,
+        base_url=GROQ_BASE_URL,
+        model_kwargs=chat_openai_model_kwargs,
+        **langchain_chat_kwargs
+    )
+    return llm
+
+- model_name : choose the model groq/openAI.... ("openai/gpt-oss-120b")
+- api_key = pulled from .env (file GROQ_API_KEY)
+- base_url : Groq's API Endpoint
+- model_kwargs: {temprature . max tokens or toolkits}
+
+---> First snippet df = SQLDatabase... conencts langchain to your MySQL database/
+---> get_chat_openai = prepare the Groq LLM instanace with all the right credentials and paramerters.
+
+--------------****------------
+def get_sql_toolkit(tool_llm_name: str):
+    """
+    Instantiates a SQLDatabaseToolkit object with the specified language model.
+
+    This function creates a SQLDatabaseToolkit object configured with a language model
+    obtained by the provided model name. The SQLDatabaseToolkit facilitates SQL query
+    generation and interaction with a database.
+
+    Args:
+        tool_llm_name (str): The name or identifier of the language model to be used.
+
+    Returns:
+        SQLDatabaseToolkit: An instance of SQLDatabaseToolkit initialized with the provided language model.
+    """
+    llm_tool = get_chat_openai(model_name=tool_llm_name)
+    toolkit = SQLDatabaseToolkit(db=db, llm=llm_tool)
+    return toolkit
+
+
+-1.  Toolkit in Langchain : 
+    -A Toolkit bundle of tools that an agent can use.
+    - Think of lika Swiff Army knife : each blade tool does somthing specefic, but the tookit organizes them for the agent. 
+    -**SQLDatabaseToolkit** : specefically give the agent:
+        - Knowledge of the Database schema (tables, column)
+        - Functions to generate and run SQL queries
+        - Utilities to interpret results safely
+
+-2. LLM + DataBase = Reasoning + Action:    
+    - The LLM (llm_tool) provides reasoning : it understnd the user, natural language
+    - The Database (db) provides ground truth data : .
+    - The toolkit fuses them : it let the llm translate human questions into SQL queries and then execute them.
+
+    - **Example** : "show me all customer who returned more than 5 orders.
+
+select user_id, count(*) as returns
+from orders
+where status = 'returned'
+group by user_id
+having count(*) > 5;
+
+- Why pas the LLM into the Toolkit? 
+    - The toolkit isn't smart by itself : it needs the LLm to:
+        - Parse natural language into sql.
+        - Decide which tables/ column to use.
+        - handle ambiguous queries (e.g : "orders" vs "purchses)
+    - The databse is libraray, the toolkit is a librarian's desk, and the llm is tha librarian's bran that understnads your quesion and fetches the right book.
+    
+    - get_chat_openai : bulds the LLM.
+    - SQLDatabaseToolkit : builds the database tools.
+    - get_sql_toolkit : Combines them
+
+
+----------------************--------------------
+def get_agent_llm(agent_llm_name: str):
+    """
+    Retrieve a language model agent for conversational tasks.
+
+    Args:
+        agent_llm_name (str): The name or identifier of the language model for the agent.
+
+    Returns:
+        ChatOpenAI: A language model agent configured for conversational tasks.
+    """
+    llm_agent = get_chat_openai(model_name=agent_llm_name)
+    return llm_agent
+
+-- Give me a lauguage model that can talk and reason, so i can plug it into an agent.
+--- purpose:
+        - This function is a helper that creates a ChatOpenAI model instance specifically for the agent.
+        - It's differnt form the SQL toolkit functions. here, the llm is not tied to a database tools, but instead acts as the conversational brain of the agent.
+
+-2. Arugments : 
+-   agent_llm_name: str: 
+    - This is the model idnetifies (e.g : "openai/gpt-oss-120b' or "gpt-4.1")
+    - It tells the funtions which model to load 
+    - passing it an argument makes the function flexible - you can swap models without rewiring code.
+
+Example : 
+    - For SQL-heavy task, you might use the smaller model.
+    - for conversational reasoning, you might use a larger, more capable model.
+
+
+------------------------------***--------------------
+
+def create_agent_for_sql(tool_llm_name: str = DEFAULT_MODEL_NAME, agent_llm_name: str = DEFAULT_MODEL_NAME):
+    """
+    Create an agent for SQL-related tasks.
+
+    Args:
+        tool_llm_name (str): The name or identifier of the language model for SQL toolkit.
+        agent_llm_name (str): The name or identifier of the language model for the agent.
+
+    Returns:
+        Agent: An agent configured for SQL-related tasks.
+
+    """
+    # agent_tools = sql_agent_tools()
+    llm_agent = get_agent_llm(agent_llm_name)
+    toolkit = get_sql_toolkit(tool_llm_name)
+    message_history = SQLChatMessageHistory(
+        session_id="my-session",
+        # connection_string="mysql://localhost:3306/ecommerce?user=root", # use this if password need f"mysql://root:{password}@localhost:3306/ecommerce"
+        connection_string=f"mysql://root:{'password'}@localhost:3306/ecommerce",
+        table_name="message_store",
+        session_id_field_name="session_id"
+    )
+    memory = ConversationBufferMemory(memory_key="chat_history", input_key='input', chat_memory=message_history, return_messages=False)
+
+    agent = create_sql_agent(
+        llm=llm_agent,
+        toolkit=toolkit,
+        agent_type="tool-calling",
+        input_variables=["input", "agent_scratchpad", "chat_history"],
+        suffix=CUSTOM_SUFFIX,
+        memory=memory,
+        agent_executor_kwargs={"memory": memory, "handle_parsing_errors": True},
+        verbose=True,
+    )
+    return agent
+
+
+    -- Puprose: 
+            - This function creates a full SQL agent  : An intellegent system that can: 
+                - uderstant nautral languge questions
+                - Translate them into SQL queries.
+                - Executes those queries on the databse.
+                - return results safely and cleary.
+
+        - It's the Glue that combines:
+            - The llm brain (get_agent_llm)
+            - The SQL Toolkit (get_sql_toolkit)
+            - The memory system (conversatinal buffer memeory)
+            - The agent orchiestation (create_sql_agent)
+
+llm_agent = get_agent_llm(agent_llm_name)
+    - Creates the brain for the agent (conversation + orchistartion)
+    - this is the model that interprets user queries and decies what to do.   
+toolkit = get_sql_toolkit(tool_llm_name)
+    - Creates the toolset for interacting with databse
+    - Includes schema awareness , query generation, and exceuction funtions.
+
+message_history = SQLChatMessageHistory(
+        session_id="my-session",
+        # connection_string="mysql://localhost:3306/ecommerce?user=root", # use this if password need f"mysql://root:{password}@localhost:3306/ecommerce"
+        connection_string=f"mysql://root:{'password'}@localhost:3306/ecommerce",
+        table_name="message_store",
+        session_id_field_name="session_id"
+
+- stores past conversation in a SQL table (message_store)
+- Ensures the agent remembers the context across turns.
+- session_id = "my-sesion" -> groups all message under one session.
+-> this is persistent memory -> unlike temporary buffers, it saves history in the DB.
+
+memory = ConversationBufferMemory(memory_key="chat_history", input_key='input', chat_memory=message_history, return_messages=False)
+
+    - Wraps the messsages history into langchain memoery object.
+    - memory_key = "chat_history" -> tells the agent where to injext the past converstaion
+    - input_key = 'input' mapping user queries into the meomory system
+    -- This is short-term memory layerd on top of the SQL message history. 
+
+agent = create_sql_agent(
+        llm=llm_agent,
+        toolkit=toolkit,
+        agent_type="tool-calling",
+        input_variables=["input", "agent_scratchpad", "chat_history"],
+        suffix=CUSTOM_SUFFIX,
+        memory=memory,
+        agent_executor_kwargs={"memory": memory, "handle_parsing_errors": True},
+        verbose=True,
+    )
+    return agent
+
+- llm = llm_agent : the reasoning brain.
+- toolkit = the SQL tools.
+-agent_type = "tool-calling' : agent can call tools (sql excution)
+- input_variables = definse what goes into the prompt:
+    - input : "user's query"
+    - agent_scratchpad : agent's internal reasoning steps.
+    - chat_history = past conversation.
+- suffix=CUSTOM_SUFFIX : strict SQL rules (no hallucination, case-insensityive queries,)
+-memory=memory : conversation + SQL history
+- agent_executor_kwargs : 
+    - handle_parsing_errors : prevents crashes if SQL parsing fails.
+- verbose=True : Logs detailed execution for debugging.
+
+- Use : 
+    - Accept natural language quesion like: 
+        - Show me all users who return more the 10 orders.
+        - What's the average order value last month?
+    
+    - Trnslates them into SQL queries
+    - Executes those queries on the ecommerce datbase.
+    - Returns only the SQL queries, with no hallucination.
+
+---------------------****------------------------
+
+ create_agent_for_python(agent_llm_name: str = DEFAULT_MODEL_NAME):
+    """
+    Create an agent for Python-related tasks.
+
+    Args:
+        agent_llm_name (str): The name or identifier of the language model for the agent.
+
+    Returns:
+        AgentExecutor: An agent executor configured for Python-related tasks.
+
+    """
+    instructions = """You are an agent designed to write a python code to answer questions.
+            You have access to a python REPL, which you can use to execute python code.
+            If you get an error, debug your code and try again.
+            You might know the answer without running any code, but you should still run the code to get the answer.
+            If it does not seem like you can write code to answer the question, just return "I don't know" as the answer.
+            Always output the python code only.
+            Generate the code <code> for plotting the previous data in plotly, in the format requested. 
+            The solution should be given using plotly and only plotly. Do not use matplotlib.
+            Return the code <code> in the following
+            format ```python <code>```
+            """
+    tools = [PythonREPLTool()]
+    base_prompt = hub.pull("langchain-ai/openai-functions-template")
+    prompt = base_prompt.partial(instructions=instructions)
+    llm = ChatOpenAI(
+        model=agent_llm_name,
+        api_key=GROQ_API_KEY,
+        base_url=GROQ_BASE_URL,
+        temperature=0
+    )
+    agent = create_openai_functions_agent(llm, tools, prompt)
+    agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=True)
+    return agent_executor
+
+
+    ## This function bulds python agent - an intellegent system that can:
+        - Accept natural langue quesitons
+        - Generate python code as the answer
+        - Execute that code in python REPL (Read - Eval - Print Loop)
+        - Debug itself if erros occur.
+        - Return the final code (formatted neatly)
+
+    - It's essentially like a python programmer
+
+swap model : 
+    - Speed vs Accuracy.
+    - Cost vs capabilty.
+
+llm = ChatOpenAI(
+        model=agent_llm_name,
+        api_key=GROQ_API_KEY,
+        base_url=GROQ_BASE_URL,
+        temperature=0
+
+- Crates the LLM braing for the agent
+- Temprature = 0 : deterministic , no randomness.
+- Uses Groq API key + base USE - > connects to the Groq LLM service
+
+agent = create_openai_functions_agent(llm, tools, prompt)
+
+    - combines:
+        - The LLM brain (llm)
+        - the python REPL tool (tools) 
+        - The Cusom pormpt (prompt)
+    
+    - creates an agent that can:
+        - parse question
+        - Genrate python code.
+        - Execute / debug the code. 
+        - return detils
+    
+    This is fusion step : brain + tool + rules = Agent.
+
+======
+
+user types question : 
+        |
+        |
+Does it Contatin Plot/ graph/chart/diagram?
+        |
+        |
+------------------        
+|                   |
+Yes                NO
+|                    |
+Chart Path          Normal Q&A path
