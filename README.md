@@ -112,564 +112,221 @@ References:
 - Install mysql-connector -> pip install mysql-connector
 
 
-# System Requirements for Open AI API Execution
+# ==Project Documentation==
 
-Using the OpenAI API involves several considerations related to the system requirements and setup to ensure smooth and efficient operation. Below are the key aspects to consider:
 
-### 1. Operating System
-The OpenAI API can be accessed from any operating system that supports HTTP requests. Commonly used operating systems include:
+# QueryGenie Project Documentation
 
-Windows: Windows 10 or later is recommended.
-macOS: macOS 10.15 (Catalina) or later.
-Linux: Modern distributions such as Ubuntu 18.04 or later
+A Text-to-SQL GenAI application built with LangChain and Streamlit. This document explains the project structure, code flow, and key concepts so you can understand the project deeply and answer interview questions confidently.
 
-### 2. Hardware Requirements
-The hardware requirements are relatively minimal, as the actual processing happens on OpenAI's servers. However, for development and integration purposes, consider the following:
+---
 
-Processor: A modern multi-core processor 
-Memory: At least 8GB of RAM is recommended, if you are handling large datasets or multiple applications simultaneously consider more.
-Storage: Sufficient storage space for your development environment and any necessary dependencies. SSD storage is recommended for faster read/write operations.
+## 1. What This Project Does
 
-### 3. Internet Connection
-A stable and reasonably fast internet connection is essential, as interactions with the OpenAI API require sending and receiving data over the internet.
+QueryGenie lets a user type a question in plain English (or ask for a chart) and get answers from a MySQL database, without writing SQL themselves.
 
-Speed: A minimum of 2-4 Mbps is recommended to handle API requests and responses efficiently.
-Stability: A stable connection with low latency is crucial to avoid timeouts and ensure quick responses from the API.
+Two things happen behind the scenes:
 
-### 4. API Key and Authentication
-API Key: To use the OpenAI API, you need an API key, which you can obtain by signing up for an account on the OpenAI platform and creating an API key.
+- A SQL Agent converts the user's question into SQL, runs it against the database, and returns the answer in natural language.
+- A Python Agent takes that answer and writes Plotly code to visualize it, if the user asked for a plot/graph/chart.
 
+The interface is built in Streamlit, so it behaves like a chatbot.
 
+---
 
+## 2. Project Structure (3 Files)
 
+| File | Responsibility |
+|---|---|
+| `agent.py` | Creates the two LangChain agents (SQL agent and Python agent) and connects them to the LLM and database |
+| `chat_app.py` | Streamlit UI, session state, routing user input to the right agent, rendering responses |
+| `helper.py` | Small utility functions to clean and format text/image/code output before displaying |
 
+Think of it as:
+- `agent.py` = the brain (decides what SQL to run, what Python to generate)
+- `chat_app.py` = the face (chat interface, decides which brain to call)
+- `helper.py` = the cleanup crew (formats messy LLM output for display)
 
+---
 
+## 3. Code Flow (Step by Step)
 
-# Code Execution Instructions
+1. App starts, `chat_app.py` calls `create_agent_for_sql()` and `create_agent_for_python()` from `agent.py`, once, and stores them in `st.session_state` so they persist across reruns.
+2. User types a question in the chat input.
+3. `chat_app.py` checks if the question contains plotting keywords (`plot`, `graph`, `chart`, `diagram`).
+4. If NOT a plot request:
+   - It goes straight to the SQL agent.
+   - The SQL agent (from `agent.py`) uses the LLM to figure out the right SQL query, executes it on the MySQL database, and returns a natural language answer.
+5. If it IS a plot request:
+   - First the SQL agent gets the raw data/answer.
+   - Then that answer is passed to the Python agent, which writes Plotly code to visualize it.
+   - `chat_app.py` extracts the Python code block from the agent's response using `display_python_code_plots()` (from `helper.py`).
+   - It patches the code (adds pandas import, replaces `fig.show()` with `st.plotly_chart(...)`) and executes it live with `exec()`.
+6. The response (text, image, or plot code) is displayed and saved into `st.session_state.messages` so the chat history persists.
 
-## Python version 3.10
+---
 
-To create a virtual environment and install requirements in Python 3.10 on different operating systems, follow the instructions below:
+## 4. Deep Dive: agent.py
 
-### For Windows:
+### 4.1 What it sets up
 
-Open the Command Prompt by pressing Win + R, typing "cmd", and pressing Enter.
+- Loads Groq API key from `.env` (Groq is used as an OpenAI-compatible LLM provider, model: `openai/gpt-oss-120b`)
+- Connects to a MySQL database called `ecommerce` using `SQLDatabase.from_uri(...)`
+- Defines two agent creator functions:
+  - `create_agent_for_sql()`
+  - `create_agent_for_python()`
 
-Change the directory to the desired location for your project:
+### 4.2 create_agent_for_sql()
 
+This builds a LangChain SQL Agent using `create_sql_agent()`.
 
-`cd C:\path\to\project`
+Key pieces:
+- `SQLDatabaseToolkit`: gives the agent tools to list tables, describe schema, and run SQL queries against the database.
+- `ConversationBufferMemory`: stores conversation history so the agent remembers earlier questions in the session.
+- `SQLChatMessageHistory`: persists that memory into a MySQL table called `message_store`, so history survives even if the app restarts.
+- `CUSTOM_SUFFIX`: a custom prompt appended to the agent's instructions. It tells the agent:
+  - Do not hallucinate, only use data from the tables
+  - Use `LOWER()` and `LIKE` for case-insensitive/fuzzy text matching
+  - How to calculate "return percentage" (business logic baked into the prompt)
+  - Return "No results found" instead of making something up
+  - Final answer must strictly be the SQL query's output, nothing extra
 
-Create a new virtual environment using the venv module:
+Interview point: This is called prompt engineering for domain-specific reliability. Business logic and guardrails are added directly into the agent's prompt rather than hardcoded in Python.
 
+### 4.3 create_agent_for_python()
 
-`python -m venv myenv`
+This builds a separate LangChain agent using `create_openai_functions_agent()` with a `PythonREPLTool`.
 
-Activate the virtual environment:
+Key pieces:
+- Its only job is to take data/text and write Plotly visualization code.
+- The instructions explicitly say: use Plotly only, not Matplotlib, and return code wrapped in a ```python code block.
+- `AgentExecutor` wraps the agent so it can actually run the Python REPL tool if needed.
 
-`myenv\Scripts\activate`
+Interview point: Why two separate agents instead of one? Separation of concerns. The SQL agent focuses only on database logic and accuracy. The Python agent focuses only on visualization. Mixing both into a single agent's prompt would confuse the model and reduce reliability. This is a common multi-agent design pattern.
 
+---
 
-Install the project requirements using pip:
+## 5. Deep Dive: chat_app.py
 
-`pip install -r requirements.txt`
+### 5.1 Session state setup
 
-### For Linux/Mac:
-Open a terminal.
+Streamlit reruns the entire script on every user interaction. To avoid recreating agents (which is slow and would wipe memory) on every rerun, the code stores agents inside `st.session_state`:
 
-Change the directory to the desired location for your project:
+```python
+if 'agent_memory_sql' not in st.session_state:
+    st.session_state['agent_memory_sql'] = create_agent_for_sql()
+    st.session_state['agent_memory_python'] = create_agent_for_python()
+```
 
-`cd /path/to/project`
+This is the standard Streamlit pattern for anything expensive that should persist across reruns (agents, database connections, chat history).
 
-Create a new virtual environment using the venv module:
+### 5.2 generate_response()
 
-`python3.10 -m venv myenv`
+This is the router function.
 
+- If `code_type == "python"`: first calls the SQL agent to get data, checks if the response indicates the agent is confused (keywords like "please provide", "don't know", "vague request"), and if not, sends that data to the Python agent to generate plotting code.
+- Else: calls the SQL agent directly and returns its answer.
+- Wraps every agent call in try/except, logs the error, and returns `"NO_RESPONSE"` on failure so the UI can show a friendly retry message instead of crashing.
 
-Activate the virtual environment:
+Interview point: Why check for keywords like "don't know" in the SQL response? Because LLM agents sometimes respond with clarifying questions instead of failing loudly. This is a manual fallback/guardrail check on top of the agent's own error handling, since agent outputs aren't fully predictable.
 
-`source myenv/bin/activate`
+### 5.3 reset_conversation()
 
-Install the project requirements using pip:
+Clears `st.session_state.messages` and recreates fresh SQL and Python agents. Bound to the "Reset Chat" button using `on_click`.
 
-`pip install -r requirements.txt`
+### 5.4 Rendering existing chat history
 
-These instructions assume you have Python 3.10 installed and added to your system's PATH variable.
+Loops through `st.session_state.messages` and re-renders each message based on its role:
+- `assistant` or `error` → rendered via `display_text_with_images()`
+- `plot` → the stored code string is executed again with `exec()` to redraw the chart
+- anything else (`user`) → rendered as plain markdown
 
-## Execution Instructions if Multiple Python Versions Installed
+This is why plots reappear correctly even after the page reruns.
 
-If you have multiple Python versions installed on your system, you can use the Python Launcher to create a virtual environment with Python 3.10. Specify the version using the -p or --python flag. Follow the instructions below:
+### 5.5 Handling new input
 
-For Windows:
-Open the Command Prompt by pressing Win + R, typing "cmd", and pressing Enter.
+```python
+if prompt := st.chat_input("Please ask your question:"):
+```
 
-Change the directory to the desired location for your project:
+This is the walrus operator: it assigns the chat input to `prompt` and checks in the same line if it is truthy (non-empty).
 
-`cd C:\path\to\project`
+Then the logic branches:
+- Plot-related keywords present → build additional context from the last assistant message, call `generate_response("python", prompt)`, extract and execute the returned Plotly code.
+- Otherwise → treat it as a pure SQL/text question, optionally attach up to 2 previous assistant messages as context, call `generate_response("sql", prompt)`.
 
-Create a new virtual environment using the Python Launcher:
+Interview point: Why attach previous assistant messages as context manually, when there's already a `ConversationBufferMemory` in the agent? This is an extra safety layer to make sure recent context is explicitly available to the agent even if the memory retrieval inside LangChain doesn't surface it well. It is redundant by design, for robustness.
 
-`py -3.10 -m venv myenv`
+### 5.6 Executing generated code safely (relatively)
 
-Note: Replace myenv with your desired virtual environment name.
+```python
+code = "import pandas as pd\n" + code.replace("fig.show()", "")
+code += "st.plotly_chart(fig, theme='streamlit', use_container_width=True)"
+exec(code)
+```
 
-Activate the virtual environment:
+The raw code from the LLM is patched:
+- `fig.show()` is removed (that only works in local Python, not Streamlit)
+- Replaced with `st.plotly_chart(...)` so it renders inside the Streamlit app
 
-`
-myenv\Scripts\activate
-`
+Interview point (important, be ready for this): Using `exec()` on LLM-generated code is a security risk in production. It should be mentioned as a known limitation if asked "how would you improve this project." A safer approach would be to sandbox execution, validate the code, or restrict allowed operations before running it.
 
-Install the project requirements using pip:
+---
 
-`pip install -r requirements.txt`
+## 6. Deep Dive: helper.py
 
+### 6.1 display_text_with_images(text)
 
-### For Linux/Mac:
-Open a terminal.
+The SQL agent's response might contain image URLs mixed with text (for example, product image links from the ecommerce table). This function:
+- Uses regex to find any URLs ending in something like `image....jpg`
+- Splits the text around those URLs
+- Displays each text chunk with `st.markdown()`
+- Displays each matched image with `st.image()`
 
-Change the directory to the desired location for your project:
+It also skips over chunks that are pure punctuation with no real letters, to avoid rendering junk fragments.
 
-`cd /path/to/project
-`
-Create a new virtual environment using the Python Launcher:
+### 6.2 display_python_code_plots(text)
 
+Uses a regex pattern to extract code between triple backtick python fences:
 
-`python3.10 -m venv myenv`
+```python
+pattern = r'```python\s(.*?)```'
+```
 
+Returns the first match (the actual Plotly code), or `None` if the LLM didn't return code in the expected format.
 
-Note: Replace myenv with your desired virtual environment name.
+Interview point: Why regex instead of parsing more robustly? Because LLM output for code blocks is fairly consistent in format, regex is simple and fast for this use case. A more robust production version could use a structured output/JSON mode instead of regex extraction.
 
-Activate the virtual environment:
+---
 
-`source myenv/bin/activate`
+## 7. Key Concepts to Be Ready to Explain in Interviews
 
-Install the project requirements using pip:
+- LangChain Agent: An LLM combined with a set of tools, where the LLM decides which tool to call and in what order, instead of following a fixed script.
+- SQLDatabaseToolkit: A pre-built LangChain toolkit that gives an agent tools to inspect a database schema and run queries safely.
+- ConversationBufferMemory: Stores the full conversation so far and feeds it back into the prompt, giving the agent short-term memory.
+- Prompt engineering via CUSTOM_SUFFIX: Injecting business rules and guardrails directly into the agent's prompt to control its behavior without changing code logic.
+- Multi-agent architecture: Splitting responsibilities (SQL generation vs code generation) between two separate agents instead of one, for reliability and focus.
+- Streamlit session state: The mechanism Streamlit provides to persist data (like agents, chat history) across reruns of the script, since Streamlit reruns top to bottom on every interaction.
+- Groq as an LLM provider: Used here as an OpenAI-compatible endpoint, which is why `ChatOpenAI` is used with a custom `base_url` pointing to Groq instead of OpenAI.
 
-`pip install -r requirements.txt`
+---
 
+## 8. Common Interview Questions to Practice
 
-By specifying the version using py -3.10 or python3.10, you can ensure that the virtual environment is created using Python 3.10 specifically, even if you have other Python versions installed.
+1. Why are there two separate agents instead of one agent doing everything?
+2. What is the purpose of `CUSTOM_SUFFIX` in the SQL agent, and why is business logic (like return percentage calculation) written into the prompt instead of Python code?
+3. How does the app avoid recreating the LLM agents on every user interaction in Streamlit?
+4. What is the risk of using `exec()` on LLM-generated Plotly code, and how would you make it safer?
+5. How does chat history persist across app restarts? (Hint: `SQLChatMessageHistory` writing to the `message_store` table)
+6. What happens if the SQL agent doesn't understand a question? How does the app detect and handle that?
+7. Why is `unidecode` used on the input text before sending it to the agent?
+8. Walk through what happens end to end when a user asks: "Show me a bar chart of total sales by category."
 
+---
 
+## 9. Suggested Improvements (Good Talking Points)
 
-## Run streamlit application
-
-`streamlit run app.py`
-
-
-
-
-==============================================================
-
-
-Complete Project view: 
-
-QueryGeine is like hiring a smart Assitant, who? 
-- Understands normal english Question from shop owner.
-- Knows how to search the register himself (write SQL query behind scenes)
-- Reads the answer from the register 
-- If owner ask for the picture / graph, it assist to provide the graph.
-
-# The Three Files:
-**chat_app.py** : The face of the project. This is that chat screen the user sees and types into (build the stremit)
-**agent.py** : The brain of the project. This creates two AI worker. One who talk to the database, one who write the python code for charts.
-**helper.py** : The support staff. Small helper functions that clean and display the AI's reply nicely, and pull out the image or code blocks from the reply text.
-
-
-3 - layer pattern: 
-1. Frontend / UI layer  : (chat_app.py)
-2. Logic/brain layer    : (agent.py)
-3. Utility/helper layer : (helper.py)
-
----------------------------------
-
-# what happens the moment the app starts (before user types anything): 
-
-chat_app.py : 
-- load_dot.env 
-- st.set_page_config(page_title="QueryGenie Analytics")
-- session_stats = 
-- SQL agent / python agent
-
-
-==================================
-
-# agent.py
-
-load_dotenv("/Users/pradipwasre/Desktop/QueryGenie/.env")
-GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
-os.environ['GROQ_API_KEY'] = GROQ_API_KEY
-
-GROQ_BASE_URL = "https://api.groq.com/openai/v1"
-DEFAULT_MODEL_NAME = "openai/gpt-oss-120b"
-
-CUSTOM_SUFFIX = """Begin!
-
-Relevant pieces of previous conversation:
-{chat_history}
-(Note: Only reference this information if it is relevant to the current query.)
-
-Question: {input}
-Thought Process: It is imperative that I do not fabricate information not present in any table or engage in hallucination; maintaining trustworthiness is crucial.
-In SQL queries involving string or TEXT comparisons, I must use the `LOWER()` function for case-insensitive comparisons and the `LIKE` operator for fuzzy matching. 
-Queries for return percentage is defined as total number of returns divided by total number of orders. You can join orders table with users table to know more about each user.
-Make sure that query is related to the SQL database and tables you are working with.
-If the result is empty, the Answer should be "No results found". DO NOT hallucinate an answer if there is no result.
-
-
-""
-never hallucinate answers : if no SQL result, repond "No results found"
-Final output must be only the SQL qury result, nothing extra
-
-This acts like a saftey net to keep the agent trustworthy and SQL- focused
-"" 
-
-
-My final response should STRICTLY be the output of SQL query.
-
-{agent_scratchpad}
-"""
-
-langchain_chat_kwargs = {
-    "temperature": 0,
-    "max_tokens": 4000,
-    "verbose": True,
-}
-chat_openai_model_kwargs = {
-    "top_p": 1.0,
-    "frequency_penalty": 0.0,
-    "presence_penalty": -1,
-}
-----------
-**In short**:
-- Loads your Groq API key securly.
-- Sets up the Groq API endpoint the default model.
-- Defines strict SQL query reles via a customer suffix.
-- Configures the LLM to be deterministic, verbose and trustworthy.
-
-----------
-
-# Code if you've set up passowrd in mysql
-# import urllib.parse
-
-# password = urllib.parse.quote_plus("you-password")  # Replace "your#password" with your actual password
-# db = SQLDatabase.from_uri(f"mysql://root:{password}@localhost:3306/ecommerce")
-
-db = SQLDatabase.from_uri(f"mysql://root:{'password'}@localhost:3306/ecommerce")
-
-# db = SQLDatabase.from_uri("mysql://localhost:3306/ecommerce?user=root")
-
-
-def get_chat_openai(model_name):
-    """
-    Returns an instance of the ChatOpenAI class initialized with the specified model name.
-
-    Args:
-        model_name (str): The name of the model to use.
-
-    Returns:
-        ChatOpenAI: An instance of the ChatOpenAI class.
-
-    """
-    llm = ChatOpenAI(
-        model_name=model_name,
-        api_key=GROQ_API_KEY,
-        base_url=GROQ_BASE_URL,
-        model_kwargs=chat_openai_model_kwargs,
-        **langchain_chat_kwargs
-    )
-    return llm
-
-- model_name : choose the model groq/openAI.... ("openai/gpt-oss-120b")
-- api_key = pulled from .env (file GROQ_API_KEY)
-- base_url : Groq's API Endpoint
-- model_kwargs: {temprature . max tokens or toolkits}
-
----> First snippet df = SQLDatabase... conencts langchain to your MySQL database/
----> get_chat_openai = prepare the Groq LLM instanace with all the right credentials and paramerters.
-
---------------****------------
-def get_sql_toolkit(tool_llm_name: str):
-    """
-    Instantiates a SQLDatabaseToolkit object with the specified language model.
-
-    This function creates a SQLDatabaseToolkit object configured with a language model
-    obtained by the provided model name. The SQLDatabaseToolkit facilitates SQL query
-    generation and interaction with a database.
-
-    Args:
-        tool_llm_name (str): The name or identifier of the language model to be used.
-
-    Returns:
-        SQLDatabaseToolkit: An instance of SQLDatabaseToolkit initialized with the provided language model.
-    """
-    llm_tool = get_chat_openai(model_name=tool_llm_name)
-    toolkit = SQLDatabaseToolkit(db=db, llm=llm_tool)
-    return toolkit
-
-
--1.  Toolkit in Langchain : 
-    -A Toolkit bundle of tools that an agent can use.
-    - Think of lika Swiff Army knife : each blade tool does somthing specefic, but the tookit organizes them for the agent. 
-    -**SQLDatabaseToolkit** : specefically give the agent:
-        - Knowledge of the Database schema (tables, column)
-        - Functions to generate and run SQL queries
-        - Utilities to interpret results safely
-
--2. LLM + DataBase = Reasoning + Action:    
-    - The LLM (llm_tool) provides reasoning : it understnd the user, natural language
-    - The Database (db) provides ground truth data : .
-    - The toolkit fuses them : it let the llm translate human questions into SQL queries and then execute them.
-
-    - **Example** : "show me all customer who returned more than 5 orders.
-
-select user_id, count(*) as returns
-from orders
-where status = 'returned'
-group by user_id
-having count(*) > 5;
-
-- Why pas the LLM into the Toolkit? 
-    - The toolkit isn't smart by itself : it needs the LLm to:
-        - Parse natural language into sql.
-        - Decide which tables/ column to use.
-        - handle ambiguous queries (e.g : "orders" vs "purchses)
-    - The databse is libraray, the toolkit is a librarian's desk, and the llm is tha librarian's bran that understnads your quesion and fetches the right book.
-    
-    - get_chat_openai : bulds the LLM.
-    - SQLDatabaseToolkit : builds the database tools.
-    - get_sql_toolkit : Combines them
-
-
-----------------************--------------------
-def get_agent_llm(agent_llm_name: str):
-    """
-    Retrieve a language model agent for conversational tasks.
-
-    Args:
-        agent_llm_name (str): The name or identifier of the language model for the agent.
-
-    Returns:
-        ChatOpenAI: A language model agent configured for conversational tasks.
-    """
-    llm_agent = get_chat_openai(model_name=agent_llm_name)
-    return llm_agent
-
--- Give me a lauguage model that can talk and reason, so i can plug it into an agent.
---- purpose:
-        - This function is a helper that creates a ChatOpenAI model instance specifically for the agent.
-        - It's differnt form the SQL toolkit functions. here, the llm is not tied to a database tools, but instead acts as the conversational brain of the agent.
-
--2. Arugments : 
--   agent_llm_name: str: 
-    - This is the model idnetifies (e.g : "openai/gpt-oss-120b' or "gpt-4.1")
-    - It tells the funtions which model to load 
-    - passing it an argument makes the function flexible - you can swap models without rewiring code.
-
-Example : 
-    - For SQL-heavy task, you might use the smaller model.
-    - for conversational reasoning, you might use a larger, more capable model.
-
-
-------------------------------***--------------------
-
-def create_agent_for_sql(tool_llm_name: str = DEFAULT_MODEL_NAME, agent_llm_name: str = DEFAULT_MODEL_NAME):
-    """
-    Create an agent for SQL-related tasks.
-
-    Args:
-        tool_llm_name (str): The name or identifier of the language model for SQL toolkit.
-        agent_llm_name (str): The name or identifier of the language model for the agent.
-
-    Returns:
-        Agent: An agent configured for SQL-related tasks.
-
-    """
-    # agent_tools = sql_agent_tools()
-    llm_agent = get_agent_llm(agent_llm_name)
-    toolkit = get_sql_toolkit(tool_llm_name)
-    message_history = SQLChatMessageHistory(
-        session_id="my-session",
-        # connection_string="mysql://localhost:3306/ecommerce?user=root", # use this if password need f"mysql://root:{password}@localhost:3306/ecommerce"
-        connection_string=f"mysql://root:{'password'}@localhost:3306/ecommerce",
-        table_name="message_store",
-        session_id_field_name="session_id"
-    )
-    memory = ConversationBufferMemory(memory_key="chat_history", input_key='input', chat_memory=message_history, return_messages=False)
-
-    agent = create_sql_agent(
-        llm=llm_agent,
-        toolkit=toolkit,
-        agent_type="tool-calling",
-        input_variables=["input", "agent_scratchpad", "chat_history"],
-        suffix=CUSTOM_SUFFIX,
-        memory=memory,
-        agent_executor_kwargs={"memory": memory, "handle_parsing_errors": True},
-        verbose=True,
-    )
-    return agent
-
-
-    -- Puprose: 
-            - This function creates a full SQL agent  : An intellegent system that can: 
-                - uderstant nautral languge questions
-                - Translate them into SQL queries.
-                - Executes those queries on the databse.
-                - return results safely and cleary.
-
-        - It's the Glue that combines:
-            - The llm brain (get_agent_llm)
-            - The SQL Toolkit (get_sql_toolkit)
-            - The memory system (conversatinal buffer memeory)
-            - The agent orchiestation (create_sql_agent)
-
-llm_agent = get_agent_llm(agent_llm_name)
-    - Creates the brain for the agent (conversation + orchistartion)
-    - this is the model that interprets user queries and decies what to do.   
-toolkit = get_sql_toolkit(tool_llm_name)
-    - Creates the toolset for interacting with databse
-    - Includes schema awareness , query generation, and exceuction funtions.
-
-message_history = SQLChatMessageHistory(
-        session_id="my-session",
-        # connection_string="mysql://localhost:3306/ecommerce?user=root", # use this if password need f"mysql://root:{password}@localhost:3306/ecommerce"
-        connection_string=f"mysql://root:{'password'}@localhost:3306/ecommerce",
-        table_name="message_store",
-        session_id_field_name="session_id"
-
-- stores past conversation in a SQL table (message_store)
-- Ensures the agent remembers the context across turns.
-- session_id = "my-sesion" -> groups all message under one session.
--> this is persistent memory -> unlike temporary buffers, it saves history in the DB.
-
-memory = ConversationBufferMemory(memory_key="chat_history", input_key='input', chat_memory=message_history, return_messages=False)
-
-    - Wraps the messsages history into langchain memoery object.
-    - memory_key = "chat_history" -> tells the agent where to injext the past converstaion
-    - input_key = 'input' mapping user queries into the meomory system
-    -- This is short-term memory layerd on top of the SQL message history. 
-
-agent = create_sql_agent(
-        llm=llm_agent,
-        toolkit=toolkit,
-        agent_type="tool-calling",
-        input_variables=["input", "agent_scratchpad", "chat_history"],
-        suffix=CUSTOM_SUFFIX,
-        memory=memory,
-        agent_executor_kwargs={"memory": memory, "handle_parsing_errors": True},
-        verbose=True,
-    )
-    return agent
-
-- llm = llm_agent : the reasoning brain.
-- toolkit = the SQL tools.
--agent_type = "tool-calling' : agent can call tools (sql excution)
-- input_variables = definse what goes into the prompt:
-    - input : "user's query"
-    - agent_scratchpad : agent's internal reasoning steps.
-    - chat_history = past conversation.
-- suffix=CUSTOM_SUFFIX : strict SQL rules (no hallucination, case-insensityive queries,)
--memory=memory : conversation + SQL history
-- agent_executor_kwargs : 
-    - handle_parsing_errors : prevents crashes if SQL parsing fails.
-- verbose=True : Logs detailed execution for debugging.
-
-- Use : 
-    - Accept natural language quesion like: 
-        - Show me all users who return more the 10 orders.
-        - What's the average order value last month?
-    
-    - Trnslates them into SQL queries
-    - Executes those queries on the ecommerce datbase.
-    - Returns only the SQL queries, with no hallucination.
-
----------------------****------------------------
-
- create_agent_for_python(agent_llm_name: str = DEFAULT_MODEL_NAME):
-    """
-    Create an agent for Python-related tasks.
-
-    Args:
-        agent_llm_name (str): The name or identifier of the language model for the agent.
-
-    Returns:
-        AgentExecutor: An agent executor configured for Python-related tasks.
-
-    """
-    instructions = """You are an agent designed to write a python code to answer questions.
-            You have access to a python REPL, which you can use to execute python code.
-            If you get an error, debug your code and try again.
-            You might know the answer without running any code, but you should still run the code to get the answer.
-            If it does not seem like you can write code to answer the question, just return "I don't know" as the answer.
-            Always output the python code only.
-            Generate the code <code> for plotting the previous data in plotly, in the format requested. 
-            The solution should be given using plotly and only plotly. Do not use matplotlib.
-            Return the code <code> in the following
-            format ```python <code>```
-            """
-    tools = [PythonREPLTool()]
-    base_prompt = hub.pull("langchain-ai/openai-functions-template")
-    prompt = base_prompt.partial(instructions=instructions)
-    llm = ChatOpenAI(
-        model=agent_llm_name,
-        api_key=GROQ_API_KEY,
-        base_url=GROQ_BASE_URL,
-        temperature=0
-    )
-    agent = create_openai_functions_agent(llm, tools, prompt)
-    agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=True)
-    return agent_executor
-
-
-    ## This function bulds python agent - an intellegent system that can:
-        - Accept natural langue quesitons
-        - Generate python code as the answer
-        - Execute that code in python REPL (Read - Eval - Print Loop)
-        - Debug itself if erros occur.
-        - Return the final code (formatted neatly)
-
-    - It's essentially like a python programmer
-
-swap model : 
-    - Speed vs Accuracy.
-    - Cost vs capabilty.
-
-llm = ChatOpenAI(
-        model=agent_llm_name,
-        api_key=GROQ_API_KEY,
-        base_url=GROQ_BASE_URL,
-        temperature=0
-
-- Crates the LLM braing for the agent
-- Temprature = 0 : deterministic , no randomness.
-- Uses Groq API key + base USE - > connects to the Groq LLM service
-
-agent = create_openai_functions_agent(llm, tools, prompt)
-
-    - combines:
-        - The LLM brain (llm)
-        - the python REPL tool (tools) 
-        - The Cusom pormpt (prompt)
-    
-    - creates an agent that can:
-        - parse question
-        - Genrate python code.
-        - Execute / debug the code. 
-        - return detils
-    
-    This is fusion step : brain + tool + rules = Agent.
-
-======
-
-user types question : 
-        |
-        |
-Does it Contatin Plot/ graph/chart/diagram?
-        |
-        |
-------------------        
-|                   |
-Yes                NO
-|                    |
-Chart Path          Normal Q&A path
+- Replace `exec()` based code execution with a sandboxed or validated execution approach.
+- Replace regex-based code block extraction with structured output (for example, asking the LLM to return JSON with a `code` field).
+- Add input validation before sending user prompts to the database-connected agent, to reduce risk of prompt injection affecting SQL generation.
+- Move hardcoded credentials (currently `'password'` as a placeholder string in the connection URI) into environment variables consistently, matching how `GROQ_API_KEY` is already loaded from `.env`.
